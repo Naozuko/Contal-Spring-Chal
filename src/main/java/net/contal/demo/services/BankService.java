@@ -46,7 +46,6 @@ public class BankService {
             session.saveOrUpdate(customerAccount);
 
             session.getTransaction().commit();
-            System.out.println("Account saved: " + customerAccount); // Debug
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -74,7 +73,6 @@ public class BankService {
 
         /** TODO write Query to get account by number un comment section below , catch query   */
         if (amount == null) {
-            System.out.println("Amount is null"); // debug
             return false;
         }
 
@@ -85,11 +83,9 @@ public class BankService {
                     .uniqueResult();
 
             if (account == null) {
-                System.out.println("Account not found for account number: " + accountNumber); // debug
                 return false;
             }
 
-            System.out.println("Account found: " + account); // debug
 
             // Creating new transaction
             BankTransaction transaction = new BankTransaction();
@@ -99,7 +95,6 @@ public class BankService {
 
             session.save(transaction);
             session.getTransaction().commit();
-            System.out.println("Transaction added: " + transaction); // debug
             return true;
         } catch (Exception e) {
             e.printStackTrace();
