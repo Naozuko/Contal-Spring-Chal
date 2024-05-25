@@ -1,5 +1,7 @@
 package net.contal.demo;
 
+import java.util.Random;
+
 public abstract class AccountNumberUtil {
 
 
@@ -10,7 +12,9 @@ public abstract class AccountNumberUtil {
      */
     public static int generateAccountNumber(){
         //TODO help use Random  class part of java SDK
-        return -1;
+        Random random = new Random();
+
+        return random.nextInt(90000000) + 10000000; // 8 digit between 1... to 9...
     }
 
 }

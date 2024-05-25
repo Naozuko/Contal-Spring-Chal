@@ -1,12 +1,17 @@
 package net.contal.demo.services;
 
+import net.contal.demo.AccountNumberUtil;
 import net.contal.demo.DbUtils;
+import net.contal.demo.modal.BankTransaction;
 import net.contal.demo.modal.CustomerAccount;
+import org.hibernate.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,11 +39,21 @@ public class BankService {
      */
     public String createAnAccount(CustomerAccount customerAccount){
             // TODO implement the rest
+        int accountNumber = AccountNumberUtil.generateAccountNumber();
+        customerAccount.setAccountNumber(accountNumber);
 
+        try (Session session = dbUtils.openASession()) {
+            session.saveOrUpdate(customerAccount);
 
-        dbUtils.openASession().saveOrUpdate(customerAccount);
+            session.getTransaction().commit();
+            System.out.println("Account saved: " + customerAccount); // Debug
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
         //TODO return bank account number
-        return "";
+        return String.valueOf(accountNumber);
     }
 
 
@@ -58,14 +73,38 @@ public class BankService {
          */
 
         /** TODO write Query to get account by number un comment section below , catch query   */
-// HAlf code
-//                 String hql = "";
-//                 this.dbUtils.openASession().createQuery(hql,CustomerAccount.class)
-//                .setParameter("accountNumber",accountNumber)
-//                .getResultList();
+        if (amount == null) {
+            System.out.println("Amount is null"); // debug
+            return false;
+        }
 
+        try (Session session = dbUtils.openASession()) {
+            String hql = "FROM CustomerAccount WHERE accountNumber = :accountNumber";
+            CustomerAccount account = session.createQuery(hql, CustomerAccount.class)
+                    .setParameter("accountNumber", accountNumber)
+                    .uniqueResult();
 
-        return false;
+            if (account == null) {
+                System.out.println("Account not found for account number: " + accountNumber); // debug
+                return false;
+            }
+
+            System.out.println("Account found: " + account); // debug
+
+            // Creating new transaction
+            BankTransaction transaction = new BankTransaction();
+            transaction.setCustomerAccount(account);
+            transaction.setTransactionAmount(amount);
+            transaction.setTransactionDate(new Date());
+
+            session.save(transaction);
+            session.getTransaction().commit();
+            System.out.println("Transaction added: " + transaction); // debug
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
 
@@ -84,14 +123,13 @@ public class BankService {
          *
          */
 
-//                 String hql = "";
-//                 this.dbUtils.openASession().createQuery(hql,CustomerAccount.class)
-//                .setParameter("accountNumber",accountNumber)
-//                .getResultList();
+        String hql = "FROM CustomerAccount WHERE accountNumber = :accountNumber";
+        CustomerAccount account = this.dbUtils.openASession()
+                .createQuery(hql,CustomerAccount.class)
+                .setParameter("accountNumber",accountNumber)
+                .uniqueResult();
 
-
-
-        return 0d;
+        return account.getAccountBalance();
     }
 
 
@@ -109,7 +147,37 @@ public class BankService {
          * Example data [01/01/1992 , 2000$] balance 2000$ that date 01/01/1992
          */
 
-        return null;
+        String hql = "FROM CustomerAccount WHERE accountNumber = :accountNumber";
+        CustomerAccount account;
+
+        try (Session session = dbUtils.openASession()) {
+            account = session.createQuery(hql, CustomerAccount.class)
+                    .setParameter("accountNumber", accountNumber)
+                    .uniqueResult();
+
+            if (account == null) {
+                throw new RuntimeException("Account not found for account number: " + accountNumber);
+            }
+
+            String transactionHql = "FROM BankTransaction WHERE customerAccount.id = :accountId ORDER BY transactionDate";
+            List<BankTransaction> transactions = session.createQuery(transactionHql, BankTransaction.class)
+                    .setParameter("accountId", account.getId())
+                    .getResultList();
+
+            Map<Date, Double> dateBalanceMap = new HashMap<>();
+            double runningBalance = 0.0;
+
+            for (BankTransaction transaction : transactions) {
+                runningBalance += transaction.getTransactionAmount();
+                dateBalanceMap.put(transaction.getTransactionDate(), runningBalance);
+            }
+
+            session.getTransaction().commit();
+            return dateBalanceMap;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error retrieving transactions", e);
+        }
     }
 
 

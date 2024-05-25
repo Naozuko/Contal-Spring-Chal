@@ -6,6 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/banks")
 public class BankController {
@@ -26,7 +29,8 @@ public class BankController {
     public long createBankAccount(@RequestBody CustomerAccount account){
         logger.info("{}" ,account.toString());
 //TODO implement the rest
-        return -1;
+        String accountNumber = dataService.createAnAccount(account);
+        return Long.parseLong(accountNumber);
     }
 
     /**
@@ -38,6 +42,11 @@ public class BankController {
     public void addTransaction(@RequestParam("accountNumber") String accountNumber, @RequestParam("amount") Double amount){
         logger.info("Bank Account number is :{} , Transaction Amount {}",accountNumber,amount);
         //TODO implement the rest
+        int intAccountNumber = Integer.parseInt(accountNumber);
+        boolean result = dataService.addTransactions(intAccountNumber, amount);
+        if (!result) {
+            throw new RuntimeException("Transac could not be added");
+        }
     }
 
 
@@ -50,7 +59,24 @@ public class BankController {
     public Double getBalance(@RequestParam("accountNumber") String accountNumber){
         logger.info("Bank Account number is :{}",accountNumber);
             //TODO implement the rest
-        return 0.0d;
+        int intAccountNumber = Integer.parseInt(accountNumber);
+        return dataService.getBalance(intAccountNumber);
+    }
+
+
+    /** self made
+     * ADVANCED, RETRIEVE ALL TRANSACTIONS GIVEN ACCOUNT NUMBER
+     *
+     * @param accountNumber
+     * @return all transactions
+     */
+
+    @RequestMapping(method = RequestMethod.POST, value = "/alltransaction")
+    public Map<Date, Double> getDateBalance(@RequestParam("accountNumber") String accountNumber) {
+        logger.info("{}", accountNumber);
+
+        int intAccountNumber = Integer.parseInt(accountNumber);
+        return dataService.getDateBalance(intAccountNumber);
     }
 
 }
